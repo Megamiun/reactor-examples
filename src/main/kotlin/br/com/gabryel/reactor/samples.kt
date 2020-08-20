@@ -211,7 +211,7 @@ private operator fun String.invoke(
 }
 
 private fun printTimed(message: String) {
-    val time = start.until(LocalDateTime.now(), MILLIS).toString().padStart(6, '-')
+    val time = start.until(LocalDateTime.now(), MILLIS).toString().padStart(6, '-') + "ms"
     val lines = message.lines().map {
         if (it.isBlank()) it
         else "[$time] $it"

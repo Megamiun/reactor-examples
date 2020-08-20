@@ -1,3 +1,1 @@
-rootProject.name = "playground"
-
-include("coroutines")
+rootProject.name = "reactor-examples"
