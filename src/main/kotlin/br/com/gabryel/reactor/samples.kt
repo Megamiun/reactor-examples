@@ -142,9 +142,9 @@ private fun <T> call(
 ): Mono<T> {
     return Mono.just(obj)
         .publishOn(scheduler)
-        .doOnSubscribe { if (verbose) printTimed("Call started: '$obj'") }
+        .doOnSubscribe { printTimed("Call started: '$obj'", verbose) }
         .doOnNext { Thread.sleep(Duration.of(delay, timeUnit).toMillis()) }
-        .doOnSuccess { if (verbose) printTimed("Call ended: '$obj'") }
+        .doOnSuccess { printTimed("Call ended: '$obj'", verbose) }
 }
 
 private fun <T> callFlux(
@@ -171,18 +171,16 @@ private operator fun String.invoke(
     var result: Any? = null
     val delta = measureTimeMillis {
         result = try {
-            when (val pub = invoke()) {
+            printTimed("Creating Publishers")
+            val pub = invoke()
+            printTimed("Publishers created")
+            println()
+
+            when (pub) {
                 is Mono -> pub
-                is Flux -> {
-                    pub.doOnNext {
-                        if (showArrivals) printTimed("Arrived: '$it'")
-                    }.collectList()
-                }
-                is ParallelFlux ->  {
-                    pub.doOnNext {
-                        if (showArrivals) printTimed("Arrived: '$it'")
-                    }.sequential().collectList()
-                }
+                is Flux -> pub.doOnNext { printTimed("Arrived: '$it'", showArrivals) }.collectList()
+                is ParallelFlux ->
+                    pub.doOnNext { printTimed("Arrived: '$it'", showArrivals) }.sequential().collectList()
                 else -> throw IllegalStateException("Not expected type: ${pub.javaClass.simpleName}")
             }.block()
         } catch (err: Throwable) {
@@ -190,27 +188,15 @@ private operator fun String.invoke(
         }
     }
 
-    if (showResults) {
-        printTimed(
-            """
-                
-                Duration: ${delta}ms
-                Result: '$result'
-                
-            """.trimIndent()
-        )
-    } else {
-        printTimed(
-            """
-                
-                Duration: ${delta}ms
-                
-            """.trimIndent()
-        )
-    }
+    println()
+    printTimed("Duration: ${delta}ms")
+    printTimed("Result: '$result'", showResults)
+    println()
 }
 
-private fun printTimed(message: String) {
+private fun printTimed(message: String, shouldPrint: Boolean = true) {
+    if (!shouldPrint) return
+
     val time = start.until(LocalDateTime.now(), MILLIS).toString().padStart(6, '-') + "ms"
     val lines = message.lines().map {
         if (it.isBlank()) it
